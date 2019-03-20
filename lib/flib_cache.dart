@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
+import 'package:meta/meta.dart';
 
 class FCacheManager {
   static FCacheManager _instance;
@@ -83,8 +84,8 @@ class FCacheConfig {
   final FByteableObjectConverter byteableObjectConverter;
   final FJsonMapableObjectConverter jsonMapableObjectConverter;
 
-  FCacheConfig(
-    this.cache, {
+  FCacheConfig({
+    @required this.cache,
     this.byteableObjectConverter,
     this.jsonMapableObjectConverter,
   }) : assert(cache != null);
