@@ -37,8 +37,8 @@ abstract class FByteObjectConverter
     extends _FCacheableObjectConverter<List<int>, FByteObject> {}
 
 /// 可转换json map为对象的转换器接口
-abstract class FJsonMapObjectConverter extends _FCacheableObjectConverter<
-    Map<String, dynamic>, FJsonMapObject> {}
+abstract class FJsonMapObjectConverter
+    extends _FCacheableObjectConverter<Map<String, dynamic>, FJsonMapObject> {}
 
 abstract class FCommonCache<T> {
   /// 放入缓存
@@ -75,4 +75,16 @@ abstract class FSingleObjectCache<T extends FCacheableObject> {
 
 abstract class FCacheKeyTransform {
   String transform(String key);
+}
+
+class FCacheException implements Exception {
+  final message;
+
+  FCacheException(this.message);
+
+  @override
+  String toString() {
+    final String prefix = 'FCacheException';
+    return message == null ? prefix : prefix + ': ' + message;
+  }
 }

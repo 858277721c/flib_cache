@@ -1,11 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:convert/convert.dart';
-import 'package:crypto/crypto.dart';
 import 'package:meta/meta.dart';
 
 import 'core.dart';
+import 'key_transform.dart';
 
 class FCache {
   static FCache _instance;
@@ -23,7 +21,7 @@ class FCache {
 
   FCacheConfig get cacheConfig {
     if (_cacheConfig == null) {
-      throw new _FCacheException('you must provide a FCacheConfig before this');
+      throw new FCacheException('you must provide a FCacheConfig before this');
     }
     return _cacheConfig;
   }
@@ -32,7 +30,7 @@ class FCache {
   void init(FCacheConfig config) {
     assert(config != null);
     if (_cacheConfig != null) {
-      throw new _FCacheException('FCacheConfig can only be specified once');
+      throw new FCacheException('FCacheConfig can only be specified once');
     }
     _cacheConfig = config;
   }
@@ -41,7 +39,7 @@ class FCache {
     final FCacheConfig config = getInstance().cacheConfig;
     return new _StringCache(
       config,
-      new _PrefixKeyTransform('FStringCache:'),
+      new PrefixKeyTransform('FStringCache:'),
     );
   }
 
@@ -49,7 +47,7 @@ class FCache {
     final FCacheConfig config = getInstance().cacheConfig;
     return new _IntCache(
       config,
-      new _PrefixKeyTransform('FIntCache:'),
+      new PrefixKeyTransform('FIntCache:'),
     );
   }
 
@@ -57,7 +55,7 @@ class FCache {
     final FCacheConfig config = getInstance().cacheConfig;
     return new _DoubleCache(
       config,
-      new _PrefixKeyTransform('FDoubleCache:'),
+      new PrefixKeyTransform('FDoubleCache:'),
     );
   }
 
@@ -65,7 +63,7 @@ class FCache {
     final FCacheConfig config = getInstance().cacheConfig;
     return new _ObjectCache<T>(
       config,
-      new _PrefixKeyTransform('FObjectCache:'),
+      new PrefixKeyTransform('FObjectCache:'),
     );
   }
 
@@ -73,7 +71,7 @@ class FCache {
     final FCacheConfig config = getInstance().cacheConfig;
     return new _SingleObjectCache<T>(
       config,
-      new _PrefixKeyTransform('FSingleObjectCache:'),
+      new PrefixKeyTransform('FSingleObjectCache:'),
     );
   }
 }
@@ -90,87 +88,7 @@ class FCacheConfig {
   }) : assert(cacheStore != null);
 }
 
-class _MD5KeyTransform implements FCacheKeyTransform {
-  @override
-  String transform(String key) {
-    assert(key != null);
-    final List<int> keyBytes = utf8.encode(key);
-    final Digest digest = md5.convert(keyBytes);
-    final String keyMd5 = hex.encode(digest.bytes);
-    return keyMd5;
-  }
-}
-
-class _PrefixKeyTransform implements FCacheKeyTransform {
-  final String prefix;
-
-  _PrefixKeyTransform(this.prefix) : assert(prefix != null);
-
-  @override
-  String transform(String key) {
-    assert(key != null);
-    return prefix + key;
-  }
-}
-
-class FFileCacheStore implements FCacheStore {
-  final String directory;
-  final FCacheKeyTransform cacheKeyTransform;
-
-  FFileCacheStore(
-    this.directory, {
-    FCacheKeyTransform cacheKeyTransform,
-  })  : this.cacheKeyTransform = cacheKeyTransform ?? new _MD5KeyTransform(),
-        assert(directory != null && directory.isNotEmpty);
-
-  File _getCacheFile(String key) {
-    key = cacheKeyTransform.transform(key);
-    return new File(directory + '/' + key);
-  }
-
-  bool _checkDirectory() {
-    return true;
-  }
-
-  @override
-  bool putCache(String key, List<int> value) {
-    if (value == null) {
-      return removeCache(key);
-    }
-
-    if (!_checkDirectory()) {
-      throw new _FCacheException('create cache directory failed');
-    }
-
-    final File file = _getCacheFile(key);
-    file.writeAsBytesSync(value);
-    return true;
-  }
-
-  @override
-  List<int> getCache(String key) {
-    final File file = _getCacheFile(key);
-    return file.existsSync() ? file.readAsBytesSync() : null;
-  }
-
-  @override
-  bool removeCache(String key) {
-    final File file = _getCacheFile(key);
-    if (file.existsSync()) {
-      file.deleteSync();
-      return true;
-    }
-    return false;
-  }
-
-  @override
-  bool containsCache(String key) {
-    final File file = _getCacheFile(key);
-    return file.existsSync();
-  }
-}
-
-abstract class _BaseCache<T> extends FCommonCache<T> {
+abstract class _BaseCache<T> implements FCommonCache<T> {
   final FCacheConfig cacheConfig;
   final FCacheKeyTransform cacheKeyTransform;
 
@@ -190,7 +108,7 @@ abstract class _BaseCache<T> extends FCommonCache<T> {
 
     final List<int> bytes = valueToBytes(value);
     if (bytes == null) {
-      throw new _FCacheException('valueToBytes return null');
+      throw new FCacheException('valueToBytes return null');
     }
 
     return cacheConfig.cacheStore.putCache(key, bytes);
@@ -220,8 +138,10 @@ abstract class _BaseCache<T> extends FCommonCache<T> {
     return cacheConfig.cacheStore.containsCache(key);
   }
 
+  @protected
   List<int> valueToBytes(T value);
 
+  @protected
   T bytesToValue(List<int> bytes);
 }
 
@@ -234,11 +154,13 @@ class _StringCache extends _BaseCache<String> implements FStringCache {
           cacheKeyTransform,
         );
 
+  @protected
   @override
   List<int> valueToBytes(String value) {
     return utf8.encode(value);
   }
 
+  @protected
   @override
   String bytesToValue(List<int> bytes) {
     return utf8.decode(bytes);
@@ -254,11 +176,13 @@ class _IntCache extends _BaseCache<int> implements FIntCache {
           cacheKeyTransform,
         );
 
+  @protected
   @override
   List<int> valueToBytes(int value) {
     return utf8.encode(value.toString());
   }
 
+  @protected
   @override
   int bytesToValue(List<int> bytes) {
     return int.parse(utf8.decode(bytes));
@@ -274,11 +198,13 @@ class _DoubleCache extends _BaseCache<double> implements FDoubleCache {
           cacheKeyTransform,
         );
 
+  @protected
   @override
   List<int> valueToBytes(double value) {
     return utf8.encode(value.toString());
   }
 
+  @protected
   @override
   double bytesToValue(List<int> bytes) {
     return double.parse(utf8.decode(bytes));
@@ -298,12 +224,13 @@ class _ObjectCache<T extends FCacheableObject> extends _BaseCache<T>
   @override
   T get(String key) {
     if (T == FCacheableObject) {
-      throw new _FCacheException(
+      throw new FCacheException(
           'Generics type are not specified when get object');
     }
     return super.get(key);
   }
 
+  @protected
   @override
   List<int> valueToBytes(FCacheableObject value) {
     final List<int> result = [];
@@ -311,7 +238,7 @@ class _ObjectCache<T extends FCacheableObject> extends _BaseCache<T>
     if (value is FByteObject) {
       final List<int> toBytes = value.toBytes();
       if (toBytes == null || toBytes.length <= 0) {
-        throw new _FCacheException(
+        throw new FCacheException(
             '${value.runtimeType.toString()} toBytes() return null or empty');
       }
 
@@ -320,7 +247,7 @@ class _ObjectCache<T extends FCacheableObject> extends _BaseCache<T>
     } else if (value is FJsonMapObject) {
       final Map<String, dynamic> jsonMap = value.toJsonMap();
       if (jsonMap == null) {
-        throw new _FCacheException(
+        throw new FCacheException(
             '${value.runtimeType.toString()} toJsonMap() return null');
       }
       final List<int> toBytes = utf8.encode(json.encode(jsonMap));
@@ -328,12 +255,13 @@ class _ObjectCache<T extends FCacheableObject> extends _BaseCache<T>
       result.addAll(toBytes);
       result.add(FCacheableObject.tagJsonMap);
     } else {
-      throw new _FCacheException(
+      throw new FCacheException(
           'unknow FCacheableObject: ' + value.runtimeType.toString());
     }
     return result;
   }
 
+  @protected
   @override
   T bytesToValue(List<int> bytes) {
     final int tagIndex = bytes.length - 1;
@@ -348,15 +276,14 @@ class _ObjectCache<T extends FCacheableObject> extends _BaseCache<T>
       case FCacheableObject.tagJsonMap:
         final String jsonString = utf8.decode(bytes);
         final Map<String, dynamic> jsonMap = json.decode(jsonString);
-        object =
-            cacheConfig.jsonMapObjectConverter.cacheToObject(jsonMap, T);
+        object = cacheConfig.jsonMapObjectConverter.cacheToObject(jsonMap, T);
         break;
       default:
-        throw new _FCacheException('unknow tag: ' + tag.toString());
+        throw new FCacheException('unknow tag: ' + tag.toString());
     }
 
     if (T != object.runtimeType) {
-      throw new _FCacheException(
+      throw new FCacheException(
           'Expect ${T.toString()} but ${object.runtimeType} was found from FCacheableObjectConverter');
     }
 
@@ -376,7 +303,7 @@ class _SingleObjectCache<T extends FCacheableObject>
           cacheKeyTransform,
         ) {
     if (T == FCacheableObject) {
-      throw new _FCacheException(
+      throw new FCacheException(
           'Generics type are not specified for FSingleObjectCache');
     }
   }
@@ -403,17 +330,5 @@ class _SingleObjectCache<T extends FCacheableObject>
   bool contains() {
     final String key = T.toString();
     return _objectCache.contains(key);
-  }
-}
-
-class _FCacheException implements Exception {
-  final message;
-
-  _FCacheException(this.message);
-
-  @override
-  String toString() {
-    final String prefix = 'FCacheException';
-    return message == null ? prefix : prefix + ': ' + message;
   }
 }
