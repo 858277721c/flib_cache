@@ -80,13 +80,13 @@ class FCache {
 
 class FCacheConfig {
   final FCacheStore cacheStore;
-  final FByteableObjectConverter byteableObjectConverter;
-  final FJsonMapableObjectConverter jsonMapableObjectConverter;
+  final FByteObjectConverter byteObjectConverter;
+  final FJsonMapObjectConverter jsonMapObjectConverter;
 
   FCacheConfig({
     @required this.cacheStore,
-    this.byteableObjectConverter,
-    this.jsonMapableObjectConverter,
+    this.byteObjectConverter,
+    this.jsonMapObjectConverter,
   }) : assert(cacheStore != null);
 }
 
@@ -308,7 +308,7 @@ class _ObjectCache<T extends FCacheableObject> extends _BaseCache<T>
   List<int> valueToBytes(FCacheableObject value) {
     final List<int> result = [];
 
-    if (value is FByteableObject) {
+    if (value is FByteObject) {
       final List<int> toBytes = value.toBytes();
       if (toBytes == null || toBytes.length <= 0) {
         throw new _FCacheException(
@@ -317,7 +317,7 @@ class _ObjectCache<T extends FCacheableObject> extends _BaseCache<T>
 
       result.addAll(toBytes);
       result.add(FCacheableObject.tagByte);
-    } else if (value is FJsonMapableObject) {
+    } else if (value is FJsonMapObject) {
       final Map<String, dynamic> jsonMap = value.toJsonMap();
       if (jsonMap == null) {
         throw new _FCacheException(
@@ -343,13 +343,13 @@ class _ObjectCache<T extends FCacheableObject> extends _BaseCache<T>
     FCacheableObject object;
     switch (tag) {
       case FCacheableObject.tagByte:
-        object = cacheConfig.byteableObjectConverter.cacheToObject(bytes, T);
+        object = cacheConfig.byteObjectConverter.cacheToObject(bytes, T);
         break;
       case FCacheableObject.tagJsonMap:
         final String jsonString = utf8.decode(bytes);
         final Map<String, dynamic> jsonMap = json.decode(jsonString);
         object =
-            cacheConfig.jsonMapableObjectConverter.cacheToObject(jsonMap, T);
+            cacheConfig.jsonMapObjectConverter.cacheToObject(jsonMap, T);
         break;
       default:
         throw new _FCacheException('unknow tag: ' + tag.toString());

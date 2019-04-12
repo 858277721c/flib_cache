@@ -19,12 +19,12 @@ abstract class FCacheableObject {
 }
 
 /// 可转换为byte的对象接口
-abstract class FByteableObject extends FCacheableObject {
+abstract class FByteObject extends FCacheableObject {
   List<int> toBytes();
 }
 
 /// 可转换为json map的对象接口
-abstract class FJsonMapableObject extends FCacheableObject {
+abstract class FJsonMapObject extends FCacheableObject {
   Map<String, dynamic> toJsonMap();
 }
 
@@ -33,12 +33,12 @@ abstract class _FCacheableObjectConverter<C, O> {
 }
 
 /// 可转换byte为对象的转换器接口
-abstract class FByteableObjectConverter
-    extends _FCacheableObjectConverter<List<int>, FByteableObject> {}
+abstract class FByteObjectConverter
+    extends _FCacheableObjectConverter<List<int>, FByteObject> {}
 
 /// 可转换json map为对象的转换器接口
-abstract class FJsonMapableObjectConverter extends _FCacheableObjectConverter<
-    Map<String, dynamic>, FJsonMapableObject> {}
+abstract class FJsonMapObjectConverter extends _FCacheableObjectConverter<
+    Map<String, dynamic>, FJsonMapObject> {}
 
 abstract class FCommonCache<T> {
   /// 放入缓存
