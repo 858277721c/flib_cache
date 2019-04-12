@@ -24,8 +24,8 @@ class FCache {
   bool _initialized = false;
 
   FCacheConfig get cacheConfig {
-    if (_cacheConfig == null) {
-      throw new FCacheException('you must provide a FCacheConfig before this');
+    if (!_initialized) {
+      throw new FCacheException('FCache has not been initialized');
     }
     return _cacheConfig;
   }
@@ -33,7 +33,7 @@ class FCache {
   /// 初始化
   Future<bool> init(FCacheConfig config) async {
     if (_initialized) {
-      throw new FCacheException('FCache can only be init once');
+      throw new FCacheException('FCache can only be initialized once');
     }
 
     assert(config != null);
