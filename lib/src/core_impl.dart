@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:meta/meta.dart';
+import 'package:path_provider/path_provider.dart';
 
+import 'cache_store.dart';
 import 'core.dart';
 import 'key_transform.dart';
 
@@ -18,6 +21,7 @@ class FCache {
   }
 
   FCacheConfig _cacheConfig;
+  bool _initialized = false;
 
   FCacheConfig get cacheConfig {
     if (_cacheConfig == null) {
@@ -27,13 +31,23 @@ class FCache {
   }
 
   /// 初始化
-  void init(FCacheConfig config) {
-    assert(config != null);
-    if (_cacheConfig != null) {
-      throw new FCacheException('FCacheConfig can only be specified once');
+  Future<bool> init(FCacheConfig config) async {
+    if (_initialized) {
+      throw new FCacheException('FCache can only be init once');
     }
+
+    assert(config != null);
+    if (config.cacheStore == null) {
+      final Directory directory = await getApplicationDocumentsDirectory();
+      config = config.copyWith(cacheStore: FFileCacheStore(directory.path));
+    }
+
     _cacheConfig = config;
+    _initialized = true;
+    return true;
   }
+
+  bool get initialized => _initialized;
 
   static FStringCache string() {
     final FCacheConfig config = getInstance().cacheConfig;
@@ -86,6 +100,18 @@ class FCacheConfig {
     this.byteObjectConverter,
     this.jsonMapObjectConverter,
   }) : assert(cacheStore != null);
+
+  FCacheConfig copyWith({
+    FCacheStore cacheStore,
+    FByteObjectConverter byteObjectConverter,
+    FJsonMapObjectConverter jsonMapObjectConverter,
+  }) {
+    return FCacheConfig(
+        cacheStore: cacheStore ?? this.cacheStore,
+        byteObjectConverter: byteObjectConverter ?? this.byteObjectConverter,
+        jsonMapObjectConverter:
+            jsonMapObjectConverter ?? this.jsonMapObjectConverter);
+  }
 }
 
 abstract class _BaseCache<T> implements FCommonCache<T> {
