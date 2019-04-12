@@ -96,10 +96,10 @@ class FCacheConfig {
   final FJsonMapObjectConverter jsonMapObjectConverter;
 
   FCacheConfig({
-    @required this.cacheStore,
+    this.cacheStore,
     this.byteObjectConverter,
     this.jsonMapObjectConverter,
-  }) : assert(cacheStore != null);
+  });
 
   FCacheConfig copyWith({
     FCacheStore cacheStore,
